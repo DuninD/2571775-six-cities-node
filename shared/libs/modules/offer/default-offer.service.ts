@@ -1,9 +1,10 @@
+import { DocumentType, types } from '@typegoose/typegoose';
 import { inject, injectable } from 'inversify';
-import { OfferService, CreateOfferDto, OfferEntity, EditOfferDto } from './index.js';
 import { Component } from '../../../types/index.js';
 import { Logger } from '../../logger/index.js';
-import { DocumentType, types } from '@typegoose/typegoose';
+import { CreateOfferDto, EditOfferDto, OfferEntity, OfferService } from './index.js';
 import { UserService } from '../user/index.js';
+import { Types } from 'mongoose';
 
 @injectable()
 export class DefaultOfferService implements OfferService {
@@ -20,14 +21,14 @@ export class DefaultOfferService implements OfferService {
   }
 
   public async findById(id: string): Promise<DocumentType<OfferEntity> | null> {
-    return this.offerModel.findById(id).exec();
+    return this.offerModel.findById(id).populate('author');
   }
 
-  public async findAll(userId?: string, city?: string, limit = 60, sortBy: 'date' | 'price' = 'date'): Promise<DocumentType<OfferEntity>[]> {
+  public async findAll(userId?: Types.ObjectId, city?: string, limit = 60, sortBy: 'date' | 'price' = 'date'): Promise<DocumentType<OfferEntity>[]> {
     const filter = city ? { city } : {};
     const offers = await this.offerModel.find(filter).sort({ [sortBy]: 1 }).limit(limit).exec();
     if (userId) {
-      const favouriteIds = new Set((await this.userService.getFavorites(userId)).map((offer) => offer._id));
+      const favouriteIds = new Set((await this.userService.getFavorites(userId.toString())).map((offer) => offer._id));
       offers.forEach((offer) => {
         offer.isFavorite = favouriteIds.has(offer._id);
       });
@@ -47,14 +48,14 @@ export class DefaultOfferService implements OfferService {
       .exec();
   }
 
-  public async edit(offerId: string, dto: EditOfferDto): Promise<DocumentType<OfferEntity>> {
+  public async edit(offerId: string, dto: EditOfferDto): Promise<DocumentType<OfferEntity> | null> {
     const offer = await this.offerModel.findByIdAndUpdate(offerId, dto, { new: true }).exec();
     if (!offer) {
       throw new Error('Offer not found');
     }
 
     this.logger.info(`Offer ${offerId} updated.`);
-    return offer;
+    return await this.findById(offerId);
   }
 
   public async delete(offerId: string): Promise<DocumentType<OfferEntity>> {

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES5",
     "module": "ESNext",
     "moduleResolution": "Node",
     "declaration": true,
@@ -24,7 +24,7 @@
     "types": ["node"],
     "lib": ["ESNext"]
   },
-  "include": ["src/**/*.ts", "shared/enums/housing-type.enum.ts", "shared/enums/user-type.enum.ts", "shared/types/user.ts"],
+  "include": ["src/**/*.ts", "shared/enums/housing-type.enum.ts", "shared/enums/user-type.enum.ts", "shared/types/user.ts", "src/rest/rest.constant.ts"],
   "exclude": ["node_modules", "**/*.test.ts"],
   "ts-node": {
     "esm": true
