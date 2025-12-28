@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { City, Convenience, Coordinate, HousingType } from '../../../../../src/models/index.js';
-import { CreateUserDto } from '../../user/index.js';
+import { CreateUserRdo } from '../../user/index.js';
 
 export class CreateOfferRdo {
   @Expose()
@@ -46,8 +46,8 @@ export class CreateOfferRdo {
   public convenienceList!: Convenience[];
 
   @Expose()
-  @Type(() => CreateUserDto)
-  public author!: CreateUserDto;
+  @Type(() => CreateUserRdo)
+  public author!: CreateUserRdo;
 
   @Expose()
   public commentsCount!: number;

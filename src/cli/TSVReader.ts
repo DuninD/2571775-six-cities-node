@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import * as fs from 'node:fs';
 import * as readline from 'node:readline';
 import { HousingType } from '../../shared/enums/housing-type.enum.js';
@@ -37,13 +38,12 @@ export class TSVReader {
 
   public parseRentalOffer(fields: string[]): CreateOfferDto {
     return {
-      id: '',
       name: fields[0],
       offerDescription: fields[1],
       publicationDate: new Date(fields[2]),
       city: parseEnum(City, fields[3]),
       previewUrl: fields[4],
-      housingImages: fields[5] as unknown as string[],
+      housingImages: fields[5].split(';'),
       isPremium: fields[6] === 'true',
       isFavorite: fields[7] === 'true',
       rating: parseFloat(fields[8]),
@@ -59,17 +59,16 @@ export class TSVReader {
         latitude: parseFloat(fields[17].split(', ')[0]),
         longitude: parseFloat(fields[17].split(', ')[1]),
       },
-      userId: fields[18],
     };
   }
 
-  private normalizeToObjectId(idString: string): string {
+  private normalizeToObjectId(idString: string): Types.ObjectId {
     if (idString.length < 24) {
       idString = idString.padEnd(24, '0');
     } else if (idString.length > 24) {
       idString = idString.substring(0, 24);
     }
 
-    return idString;
+    return new Types.ObjectId(idString);
   }
 }

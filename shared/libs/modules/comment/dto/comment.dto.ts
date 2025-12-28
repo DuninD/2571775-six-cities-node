@@ -1,5 +1,5 @@
-import { IsDateString, IsMongoId, IsNumber, Max, MaxLength, Min, MinLength } from 'class-validator';
-import { CommentValidationMessage } from '../dto/comment.message.js';
+import { IsDateString, IsNumber, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { CommentValidationMessage } from './comment.message.js';
 
 export class CommentDto {
   public id!: string;
@@ -15,9 +15,4 @@ export class CommentDto {
   @Min(0, {message: CommentValidationMessage.rating.minValue})
   @Max(5, {message: CommentValidationMessage.rating.maxValue})
   public rating!: number;
-
-  public authorId!: string;
-
-  @IsMongoId({ message: CommentValidationMessage.offerId.invalidFormat })
-  public offerId!: string;
 }

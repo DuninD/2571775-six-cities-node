@@ -1,11 +1,11 @@
 import { inject, injectable } from 'inversify';
 import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { BaseController, HttpError, UploadFileMiddleware, ValidateDtoMiddleware, ValidateObjectIdMiddleware } from '../../../libs/rest/index.js';
+import { AnonymousRouteMiddleware, BaseController, HttpError, PrivateRouteMiddleware, UploadFileMiddleware, ValidateDtoMiddleware, ValidateObjectIdMiddleware } from '../../../libs/rest/index.js';
 import { Logger } from '../../../libs/logger/index.js';
 import { Component, HttpMethod } from '../../../types/index.js';
 import { CreateUserRequest } from './create-user-request.type.js';
-import { CreateUserDto, LoginUserDto, UserService } from './index.js';
+import { CreateUserDto, GetFavoritesRdo, LoginUserDto, UserService } from './index.js';
 import { Config, RestSchema } from '../../config/index.js';
 import { fillDTO } from '../../helpers/index.js';
 import { CreateUserRdo } from './rdo/create-user.rdo.js';
@@ -27,7 +27,9 @@ export class UserController extends BaseController {
     this.addRoute({ path: '/register',
       method: HttpMethod.Post,
       handler: this.create,
-      middlewares: [new ValidateDtoMiddleware(CreateUserDto)],
+      middlewares: [
+        new AnonymousRouteMiddleware(),
+        new ValidateDtoMiddleware(CreateUserDto)],
     });
     this.addRoute({
       path: '/login',
@@ -36,9 +38,10 @@ export class UserController extends BaseController {
       middlewares: [new ValidateDtoMiddleware(LoginUserDto)],
     });
     this.addRoute({
-      path: '/login',
+      path: '/checkAuthenticate',
       method: HttpMethod.Get,
       handler: this.checkAuthenticate,
+      middlewares: [],
     });
     this.addRoute({
       path: '/:userId/avatar',
@@ -48,6 +51,12 @@ export class UserController extends BaseController {
         new ValidateObjectIdMiddleware('userId'),
         new UploadFileMiddleware(this.configService.get('UPLOAD_DIRECTORY'), 'avatar'),
       ]
+    });
+    this.addRoute({
+      path: '/getFavorites',
+      method: HttpMethod.Get,
+      handler: this.getFavorites,
+      middlewares: [new PrivateRouteMiddleware()],
     });
   }
 
@@ -75,11 +84,8 @@ export class UserController extends BaseController {
   ): Promise<void> {
     const user = await this.authService.verify(body);
     const token = await this.authService.authenticate(user);
-    const responseData = fillDTO(LoggedUserRdo, {
-      email: user.email,
-      token,
-    });
-    this.ok(res, responseData);
+    const responseData = fillDTO(LoggedUserRdo, user);
+    this.ok(res, Object.assign(responseData, { token }));
   }
 
   public async uploadAvatar(req: Request, res: Response) {
@@ -88,8 +94,8 @@ export class UserController extends BaseController {
     });
   }
 
-  public async checkAuthenticate({ tokenPayload: { email }}: Request, res: Response) {
-    const foundedUser = await this.userService.findByEmail(email);
+  public async checkAuthenticate({ tokenPayload }: Request, res: Response) {
+    const foundedUser = await this.userService.findByEmail(tokenPayload.email);
 
     if (! foundedUser) {
       throw new HttpError(
@@ -100,5 +106,23 @@ export class UserController extends BaseController {
     }
 
     this.ok(res, fillDTO(LoggedUserRdo, foundedUser));
+  }
+
+  public async getFavorites(
+    { tokenPayload }: Request,
+    res: Response
+  ): Promise<void> {
+    const userId = tokenPayload.id.toString();
+    const user = await this.userService.findById(userId);
+
+    if (!user) {
+      throw new HttpError(
+        StatusCodes.NOT_FOUND,
+        `User with id ${userId} not found.`,
+        'OfferController'
+      );
+    }
+
+    this.ok(res, fillDTO(GetFavoritesRdo, { favorites: user.favorites }));
   }
 }
